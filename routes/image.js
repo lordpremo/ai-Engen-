@@ -17,7 +17,7 @@ router.post("/", async (req, res) => {
       }
     );
 
-    res.json({ image: response.data.image });
+    res.json(response.data);
   } catch (err) {
     res.status(500).json({ error: "Image generation failed" });
   }
