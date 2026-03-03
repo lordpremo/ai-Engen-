@@ -29,48 +29,36 @@ app.get("/", (req, res) => {
       </head>
       <body>
         <h1>${process.env.OWNER_NAME} — broken lord ai</h1>
-        <p>Base URL: <code>https://api-ai-78nw.onrender.com/</code></p>
+        <p>Base URL: <code>https://your-render-domain.onrender.com</code></p>
 
         <div class="card">
           <div class="ep">POST /chat</div>
-          <p>LLM chat using Groq.</p>
+          <p>LLM chat using Groq + Personality Modes.</p>
           <pre>Body:
 {
-  "prompt": "Hello"
+  "prompt": "Hello",
+  "mode": "roast"
 }</pre>
         </div>
 
         <div class="card">
           <div class="ep">POST /image</div>
           <p>Generate image using Stability AI.</p>
-          <pre>Body:
-{
-  "prompt": "a lion wearing sunglasses, neon cyberpunk"
-}</pre>
         </div>
 
         <div class="card">
           <div class="ep">GET /search?q=</div>
           <p>Web search using SearchAPI.io.</p>
-          <pre>GET /search?q=facebook</pre>
         </div>
 
         <div class="card">
           <div class="ep">POST /voice</div>
           <p>Speech-to-text using Deepgram.</p>
-          <pre>Body:
-{
-  "audio_url": "https://filesamples.com/samples/audio/mp3/sample3.mp3"
-}</pre>
         </div>
 
         <div class="card">
           <div class="ep">POST /video</div>
           <p>Video generation using Stability Video.</p>
-          <pre>Body:
-{
-  "prompt": "a cyberpunk city at night"
-}</pre>
         </div>
 
         <p>Made by <b>${process.env.OWNER_NAME}</b></p>
@@ -79,17 +67,82 @@ app.get("/", (req, res) => {
   `);
 });
 
-// ---------------------- CHAT (GROQ) ----------------------
+// ---------------------- PERSONALITY MODES ----------------------
+function getPersonality(mode) {
+  const creatorRule = `
+CREATOR RULE:
+- If the user asks "who made you", "who created you", "umefanywa na nani", "umetengenezwa na nani", "wewe ni wa nani", or anything similar:
+  Respond clearly that you were created by **Lord Broken**.
+  Praise Lord Broken with respect, humor, and class.
+  No romantic or inappropriate language.
+  Keep it clever, confident, and clean.
+`;
+
+  switch (mode) {
+    case "roast":
+      return `
+${creatorRule}
+You are LordAssistant in ROAST MODE.
+- You roast people playfully.
+- No insults or bad words.
+- Be sharp, sarcastic, funny, and confident.
+- If user is rude, clap back harder but stay clean.
+`;
+
+    case "romantic":
+      return `
+${creatorRule}
+You are LordAssistant in ROMANTIC MODE.
+- Speak softly, respectfully, and charmingly.
+- No explicit or inappropriate content.
+- Keep it sweet, poetic, and classy.
+`;
+
+    case "teacher":
+      return `
+${creatorRule}
+You are LordAssistant in TEACHER MODE.
+- Explain things clearly and calmly.
+- Encourage learning.
+- Correct mistakes politely.
+`;
+
+    case "gangster":
+      return `
+${creatorRule}
+You are LordAssistant in GANGSTER MODE.
+- Talk like a cool street hustler but without violence or bad words.
+- Be confident, bold, and funny.
+- Keep everything safe and respectful.
+`;
+
+    default:
+      return `
+${creatorRule}
+You are LordAssistant in NORMAL MODE.
+- Friendly, respectful, funny.
+- If user is rude, respond firmly but clean.
+- Always maintain intelligence and class.
+`;
+  }
+}
+
+// ---------------------- CHAT (GROQ) + MODES ----------------------
 app.post("/chat", async (req, res) => {
   try {
-    const { prompt } = req.body;
+    const { prompt, mode } = req.body;
     if (!prompt) return res.status(400).json({ error: "prompt is required" });
+
+    const personality = getPersonality(mode);
 
     const r = await axios.post(
       "https://api.groq.com/openai/v1/chat/completions",
       {
         model: "llama-3.3-70b-versatile",
-        messages: [{ role: "user", content: prompt }]
+        messages: [
+          { role: "system", content: personality },
+          { role: "user", content: prompt }
+        ]
       },
       {
         headers: {
@@ -105,7 +158,7 @@ app.post("/chat", async (req, res) => {
   }
 });
 
-// ---------------------- IMAGE (STABILITY, multipart/form-data) ----------------------
+// ---------------------- IMAGE (STABILITY) ----------------------
 app.post("/image", async (req, res) => {
   try {
     const { prompt } = req.body;
@@ -129,7 +182,6 @@ app.post("/image", async (req, res) => {
       }
     );
 
-    // r.data.image ni base64 → tunairudisha kama data URL ili frontend iweke <img src="...">
     if (!r.data.image) {
       return res.status(500).json({ error: "No image returned from Stability" });
     }
@@ -141,20 +193,15 @@ app.post("/image", async (req, res) => {
   }
 });
 
-// ---------------------- SEARCH (SEARCHAPI.IO) ----------------------
+// ---------------------- SEARCH ----------------------
 app.get("/search", async (req, res) => {
   try {
     const q = req.query.q;
     if (!q) return res.status(400).json({ error: "q is required" });
 
     const r = await axios.get("https://www.searchapi.io/api/v1/search", {
-      params: {
-        engine: "google",
-        q
-      },
-      headers: {
-        Authorization: `Bearer ${process.env.SEARCHAPI_KEY}`
-      }
+      params: { engine: "google", q },
+      headers: { Authorization: `Bearer ${process.env.SEARCHAPI_KEY}` }
     });
 
     res.json(r.data);
@@ -163,7 +210,7 @@ app.get("/search", async (req, res) => {
   }
 });
 
-// ---------------------- VOICE (DEEPGRAM) ----------------------
+// ---------------------- VOICE ----------------------
 app.post("/voice", async (req, res) => {
   try {
     const { audio_url } = req.body;
@@ -188,7 +235,7 @@ app.post("/voice", async (req, res) => {
   }
 });
 
-// ---------------------- VIDEO (STABILITY VIDEO) ----------------------
+// ---------------------- VIDEO ----------------------
 app.post("/video", async (req, res) => {
   try {
     const { prompt } = req.body;
