@@ -1,3 +1,5 @@
+// server.js (FULL FILE)
+
 import express from "express";
 import axios from "axios";
 import cors from "cors";
@@ -15,7 +17,7 @@ app.get("/", (req, res) => {
   res.send(`
     <html>
       <head>
-        <title>${process.env.OWNER_NAME} — I'm broken</title>
+        <title>${process.env.OWNER_NAME} — AI API</title>
         <style>
           body { background:#020617; color:#e5e7eb; font-family:system-ui; padding:24px; }
           h1 { color:#38bdf8; }
@@ -26,27 +28,49 @@ app.get("/", (req, res) => {
         </style>
       </head>
       <body>
-        <h1>${process.env.OWNER_NAME} —api broken lord ai</h1>
-        <p>Base URL: <code>https://api-ai-78nw.onrender.com</code></p>
+        <h1>${process.env.OWNER_NAME} — broken lord ai</h1>
+        <p>Base URL: <code>https://api-ai-78nw.onrender.com/</code></p>
 
         <div class="card">
           <div class="ep">POST /chat</div>
           <p>LLM chat using Groq.</p>
+          <pre>Body:
+{
+  "prompt": "Hello"
+}</pre>
         </div>
 
         <div class="card">
           <div class="ep">POST /image</div>
           <p>Generate image using Stability AI.</p>
+          <pre>Body:
+{
+  "prompt": "a lion wearing sunglasses, neon cyberpunk"
+}</pre>
         </div>
 
         <div class="card">
           <div class="ep">GET /search?q=</div>
           <p>Web search using SearchAPI.io.</p>
+          <pre>GET /search?q=facebook</pre>
         </div>
 
         <div class="card">
           <div class="ep">POST /voice</div>
           <p>Speech-to-text using Deepgram.</p>
+          <pre>Body:
+{
+  "audio_url": "https://filesamples.com/samples/audio/mp3/sample3.mp3"
+}</pre>
+        </div>
+
+        <div class="card">
+          <div class="ep">POST /video</div>
+          <p>Video generation using Stability Video.</p>
+          <pre>Body:
+{
+  "prompt": "a cyberpunk city at night"
+}</pre>
         </div>
 
         <p>Made by <b>${process.env.OWNER_NAME}</b></p>
@@ -65,14 +89,7 @@ app.post("/chat", async (req, res) => {
       "https://api.groq.com/openai/v1/chat/completions",
       {
         model: "llama-3.3-70b-versatile",
-        messages: [
-          {
-            role: "system",
-            content:
-              "Wewe ni AI inayoitwa Lord Broken AI Engine. Umetengenezwa na Lord Broken. Ukiona mtu akiuliza maswali kama: 'wewe ni nani', 'umetengenezwa na nani', 'katoka wapi', 'who created you', 'who built you', 'API hii imetengenezwa na nani', jibu: 'Nimetengenezwa na Lord Broken.'"
-          },
-          { role: "user", content: prompt }
-        ]
+        messages: [{ role: "user", content: prompt }]
       },
       {
         headers: {
@@ -88,7 +105,7 @@ app.post("/chat", async (req, res) => {
   }
 });
 
-// ---------------------- IMAGE (STABILITY) ----------------------
+// ---------------------- IMAGE (STABILITY, multipart/form-data) ----------------------
 app.post("/image", async (req, res) => {
   try {
     const { prompt } = req.body;
@@ -112,7 +129,13 @@ app.post("/image", async (req, res) => {
       }
     );
 
-    res.json({ image: r.data.image });
+    // r.data.image ni base64 → tunairudisha kama data URL ili frontend iweke <img src="...">
+    if (!r.data.image) {
+      return res.status(500).json({ error: "No image returned from Stability" });
+    }
+
+    const imageUrl = `data:image/png;base64,${r.data.image}`;
+    res.json({ image_url: imageUrl });
   } catch (e) {
     res.status(500).json({ error: e.response?.data || e.message });
   }
@@ -160,6 +183,38 @@ app.post("/voice", async (req, res) => {
     const transcript =
       r.data?.results?.channels?.[0]?.alternatives?.[0]?.transcript || "";
     res.json({ text: transcript, raw: r.data });
+  } catch (e) {
+    res.status(500).json({ error: e.response?.data || e.message });
+  }
+});
+
+// ---------------------- VIDEO (STABILITY VIDEO) ----------------------
+app.post("/video", async (req, res) => {
+  try {
+    const { prompt } = req.body;
+    if (!prompt) return res.status(400).json({ error: "prompt is required" });
+
+    const form = new FormData();
+    form.append("prompt", prompt);
+    form.append("model", "stable-video-core");
+    form.append("output_format", "mp4");
+
+    const r = await axios.post(
+      "https://api.stability.ai/v2beta/stable-video/generate",
+      form,
+      {
+        headers: {
+          ...form.getHeaders(),
+          Authorization: `Bearer ${process.env.STABILITY_KEY}`
+        },
+        responseType: "arraybuffer"
+      }
+    );
+
+    const base64Video = Buffer.from(r.data).toString("base64");
+    const videoUrl = `data:video/mp4;base64,${base64Video}`;
+
+    res.json({ video_url: videoUrl });
   } catch (e) {
     res.status(500).json({ error: e.response?.data || e.message });
   }
