@@ -17,7 +17,7 @@ router.post("/", async (req, res) => {
       }
     );
 
-    res.json({ video: response.data.video });
+    res.json(response.data);
   } catch (err) {
     res.status(500).json({ error: "Video generation failed" });
   }
