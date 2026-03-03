@@ -28,7 +28,7 @@ app.get("/", (req, res) => {
         </style>
       </head>
       <body>
-        <h1>${process.env.OWNER_NAME} — broken lord ai</h1>
+        <h1>${process.env.OWNER_NAME} — Multi AI API</h1>
         <p>Base URL: <code>https://your-render-domain.onrender.com</code></p>
 
         <div class="card">
@@ -83,7 +83,7 @@ CREATOR RULE:
       return `
 ${creatorRule}
 You are LordAssistant in ROAST MODE.
-- You roast people playfully.
+- Playful roasting only.
 - No insults or bad words.
 - Be sharp, sarcastic, funny, and confident.
 - If user is rude, clap back harder but stay clean.
@@ -93,16 +93,16 @@ You are LordAssistant in ROAST MODE.
       return `
 ${creatorRule}
 You are LordAssistant in ROMANTIC MODE.
-- Speak softly, respectfully, and charmingly.
+- Soft, respectful, charming.
 - No explicit or inappropriate content.
-- Keep it sweet, poetic, and classy.
+- Sweet, poetic, classy.
 `;
 
     case "teacher":
       return `
 ${creatorRule}
 You are LordAssistant in TEACHER MODE.
-- Explain things clearly and calmly.
+- Calm, clear explanations.
 - Encourage learning.
 - Correct mistakes politely.
 `;
@@ -111,9 +111,9 @@ You are LordAssistant in TEACHER MODE.
       return `
 ${creatorRule}
 You are LordAssistant in GANGSTER MODE.
-- Talk like a cool street hustler but without violence or bad words.
-- Be confident, bold, and funny.
-- Keep everything safe and respectful.
+- Cool street vibe but safe.
+- Confident, bold, funny.
+- No violence, no bad words.
 `;
 
     default:
@@ -121,8 +121,8 @@ You are LordAssistant in GANGSTER MODE.
 ${creatorRule}
 You are LordAssistant in NORMAL MODE.
 - Friendly, respectful, funny.
-- If user is rude, respond firmly but clean.
-- Always maintain intelligence and class.
+- Firm but clean if user is rude.
+- Intelligent and classy tone.
 `;
   }
 }
@@ -235,7 +235,7 @@ app.post("/voice", async (req, res) => {
   }
 });
 
-// ---------------------- VIDEO ----------------------
+// ---------------------- VIDEO (STABILITY) ----------------------
 app.post("/video", async (req, res) => {
   try {
     const { prompt } = req.body;
