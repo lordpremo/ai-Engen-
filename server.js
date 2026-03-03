@@ -2,6 +2,7 @@ import express from "express";
 import axios from "axios";
 import cors from "cors";
 import dotenv from "dotenv";
+import FormData from "form-data";
 
 dotenv.config();
 
@@ -14,58 +15,51 @@ app.get("/", (req, res) => {
   res.send(`
     <html>
       <head>
-        <title>${process.env.OWNER_NAME} — AI API</title>
+        <title>${process.env.OWNER_NAME} — I'm broken</title>
         <style>
           body { background:#020617; color:#e5e7eb; font-family:system-ui; padding:24px; }
           h1 { color:#38bdf8; }
           code { background:#020617; padding:2px 6px; border-radius:4px; }
           .card { border:1px solid #1f2937; border-radius:10px; padding:12px; margin-top:10px; }
           .ep { color:#a855f7; font-weight:600; }
+          pre { background:#020617; border-radius:6px; padding:8px; font-size:13px; }
         </style>
       </head>
       <body>
-        <h1>${process.env.OWNER_NAME} — Multi AI API</h1>
-        <p>Base URL: <code>https://your-render-domain.onrender.com</code></p>
+        <h1>${process.env.OWNER_NAME} — broken ai api</h1>
+        <p>Base URL: <code>https://api-ai-78nw.onrender.com/</code></p>
 
         <div class="card">
           <div class="ep">POST /chat</div>
           <p>LLM chat using Groq.</p>
-          <pre>
-Body:
+          <pre>Body:
 {
   "prompt": "Hello"
-}
-          </pre>
+}</pre>
         </div>
 
         <div class="card">
           <div class="ep">POST /image</div>
           <p>Generate image using Stability AI.</p>
-          <pre>
-Body:
+          <pre>Body:
 {
   "prompt": "a lion wearing sunglasses, neon cyberpunk"
-}
-          </pre>
+}</pre>
         </div>
 
         <div class="card">
           <div class="ep">GET /search?q=</div>
           <p>Web search using SearchAPI.io.</p>
-          <pre>
-GET /search?q=facebook
-          </pre>
+          <pre>GET /search?q=facebook</pre>
         </div>
 
         <div class="card">
           <div class="ep">POST /voice</div>
           <p>Speech-to-text using Deepgram.</p>
-          <pre>
-Body:
+          <pre>Body:
 {
-  "audio_url": "https://example.com/audio.mp3"
-}
-          </pre>
+  "audio_url": "https://filesamples.com/samples/audio/mp3/sample3.mp3"
+}</pre>
         </div>
 
         <p>Made by <b>${process.env.OWNER_NAME}</b></p>
@@ -100,30 +94,31 @@ app.post("/chat", async (req, res) => {
   }
 });
 
-// ---------------------- IMAGE (STABILITY) ----------------------
+// ---------------------- IMAGE (STABILITY, multipart/form-data) ----------------------
 app.post("/image", async (req, res) => {
   try {
     const { prompt } = req.body;
     if (!prompt) return res.status(400).json({ error: "prompt is required" });
 
+    const form = new FormData();
+    form.append("prompt", prompt);
+    form.append("output_format", "png");
+    form.append("model", "stable-image-core");
+    form.append("aspect_ratio", "1:1");
+
     const r = await axios.post(
       "https://api.stability.ai/v2beta/stable-image/generate/core",
-      {
-        model: "stable-image-core",
-        prompt,
-        output_format: "png",
-        aspect_ratio: "1:1"
-      },
+      form,
       {
         headers: {
-          Authorization: `Bearer ${process.env.STABILITY_KEY}`,
-          Accept: "application/json",
-          "Content-Type": "application/json"
-        }
+          ...form.getHeaders(),
+          Authorization: `Bearer ${process.env.STABILITY_KEY}`
+        },
+        responseType: "json"
       }
     );
 
-    // r.data.image mara nyingi huwa base64
+    // r.data.image mara nyingi ni base64
     res.json({ image: r.data.image });
   } catch (e) {
     res.status(500).json({ error: e.response?.data || e.message });
@@ -136,18 +131,15 @@ app.get("/search", async (req, res) => {
     const q = req.query.q;
     if (!q) return res.status(400).json({ error: "q is required" });
 
-    const r = await axios.get(
-      "https://www.searchapi.io/api/v1/search",
-      {
-        params: {
-          engine: "google",
-          q
-        },
-        headers: {
-          Authorization: `Bearer ${process.env.SEARCHAPI_KEY}`
-        }
+    const r = await axios.get("https://www.searchapi.io/api/v1/search", {
+      params: {
+        engine: "google",
+        q
+      },
+      headers: {
+        Authorization: `Bearer ${process.env.SEARCHAPI_KEY}`
       }
-    );
+    });
 
     res.json(r.data);
   } catch (e) {
