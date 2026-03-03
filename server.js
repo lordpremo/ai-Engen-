@@ -26,40 +26,27 @@ app.get("/", (req, res) => {
         </style>
       </head>
       <body>
-        <h1>${process.env.OWNER_NAME} — broken ai api</h1>
-        <p>Base URL: <code>https://api-ai-78nw.onrender.com/</code></p>
+        <h1>${process.env.OWNER_NAME} —api broken lord ai</h1>
+        <p>Base URL: <code>https://api-ai-78nw.onrender.com</code></p>
 
         <div class="card">
           <div class="ep">POST /chat</div>
           <p>LLM chat using Groq.</p>
-          <pre>Body:
-{
-  "prompt": "Hello"
-}</pre>
         </div>
 
         <div class="card">
           <div class="ep">POST /image</div>
           <p>Generate image using Stability AI.</p>
-          <pre>Body:
-{
-  "prompt": "a lion wearing sunglasses, neon cyberpunk"
-}</pre>
         </div>
 
         <div class="card">
           <div class="ep">GET /search?q=</div>
           <p>Web search using SearchAPI.io.</p>
-          <pre>GET /search?q=facebook</pre>
         </div>
 
         <div class="card">
           <div class="ep">POST /voice</div>
           <p>Speech-to-text using Deepgram.</p>
-          <pre>Body:
-{
-  "audio_url": "https://filesamples.com/samples/audio/mp3/sample3.mp3"
-}</pre>
         </div>
 
         <p>Made by <b>${process.env.OWNER_NAME}</b></p>
@@ -78,7 +65,14 @@ app.post("/chat", async (req, res) => {
       "https://api.groq.com/openai/v1/chat/completions",
       {
         model: "llama-3.3-70b-versatile",
-        messages: [{ role: "user", content: prompt }]
+        messages: [
+          {
+            role: "system",
+            content:
+              "Wewe ni AI inayoitwa Lord Broken AI Engine. Umetengenezwa na Lord Broken. Ukiona mtu akiuliza maswali kama: 'wewe ni nani', 'umetengenezwa na nani', 'katoka wapi', 'who created you', 'who built you', 'API hii imetengenezwa na nani', jibu: 'Nimetengenezwa na Lord Broken.'"
+          },
+          { role: "user", content: prompt }
+        ]
       },
       {
         headers: {
@@ -94,7 +88,7 @@ app.post("/chat", async (req, res) => {
   }
 });
 
-// ---------------------- IMAGE (STABILITY, multipart/form-data) ----------------------
+// ---------------------- IMAGE (STABILITY) ----------------------
 app.post("/image", async (req, res) => {
   try {
     const { prompt } = req.body;
@@ -118,7 +112,6 @@ app.post("/image", async (req, res) => {
       }
     );
 
-    // r.data.image mara nyingi ni base64
     res.json({ image: r.data.image });
   } catch (e) {
     res.status(500).json({ error: e.response?.data || e.message });
