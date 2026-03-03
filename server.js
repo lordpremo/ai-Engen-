@@ -1,131 +1,126 @@
-const express = require('express');
-const axios = require('axios');
-const cors = require('cors');
-require('dotenv').config();
+import express from "express";
+import axios from "axios";
+import cors from "cors";
+import dotenv from "dotenv";
 
+dotenv.config();
 const app = express();
-app.use(cors());
 app.use(express.json());
+app.use(cors());
 
-// CHAT - Groq
-app.post('/chat', async (req, res) => {
+// ---------------------- HOME PAGE ----------------------
+app.get("/", (req, res) => {
+  res.send(`
+    <h1>${process.env.OWNER_NAME} — Multi AI API</h1>
+    <p>Welcome to your unified AI API. Below are available endpoints:</p>
+
+    <ul>
+      <li><b>POST /chat</b> — Chat LLM (Groq)</li>
+      <li><b>POST /image</b> — Generate Image (Stability)</li>
+      <li><b>POST /video</b> — Generate Video (Groq)</li>
+      <li><b>POST /voice</b> — Speech-to-Text (Deepgram)</li>
+      <li><b>GET /search?q=</b> — Web Search (SearchAPI.io)</li>
+    </ul>
+
+    <p>Made by <b>${process.env.OWNER_NAME}</b></p>
+  `);
+});
+
+// ---------------------- CHAT ----------------------
+app.post("/chat", async (req, res) => {
   try {
-    const { message } = req.body;
+    const { prompt } = req.body;
 
-    const response = await axios.post(
-      'https://api.groq.com/openai/v1/chat/completions',
+    const r = await axios.post(
+      "https://api.groq.com/openai/v1/chat/completions",
       {
-        model: 'llama-3.1-70b-versatile',
-        messages: [
-          { role: 'system', content: 'You are Lord AI assistant.' },
-          { role: 'user', content: message }
-        ]
+        model: "llama-3.1-70b-versatile",
+        messages: [{ role: "user", content: prompt }]
       },
-      {
-        headers: {
-          Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
-          'Content-Type': 'application/json'
-        }
-      }
+      { headers: { Authorization: `Bearer ${process.env.GROQ_KEY}` } }
     );
 
-    res.json({ reply: response.data.choices[0].message.content });
-  } catch (err) {
-    res.status(500).json({ error: 'Chat error', details: err.response?.data });
+    res.json({ response: r.data.choices[0].message.content });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
   }
 });
 
-// IMAGE - Stability AI
-app.post('/image', async (req, res) => {
+// ---------------------- IMAGE GENERATION ----------------------
+app.post("/image", async (req, res) => {
   try {
     const { prompt } = req.body;
 
-    const response = await axios.post(
-      'https://api.stability.ai/v2beta/stable-image/generate/core',
+    const r = await axios.post(
+      "https://api.stability.ai/v2beta/stable-image/generate/core",
       { prompt },
       {
         headers: {
-          Authorization: `Bearer ${process.env.STABILITY_API_KEY}`,
-          Accept: 'application/json',
-          'Content-Type': 'application/json'
+          Authorization: `Bearer ${process.env.STABILITY_KEY}`,
+          Accept: "application/json"
         }
       }
     );
 
-    res.json(response.data);
-  } catch (err) {
-    res.status(500).json({ error: 'Image error', details: err.response?.data });
+    res.json({ image: r.data.image });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
   }
 });
 
-// VIDEO - Stability AI
-app.post('/video', async (req, res) => {
+// ---------------------- VIDEO GENERATION ----------------------
+app.post("/video", async (req, res) => {
   try {
     const { prompt } = req.body;
 
-    const response = await axios.post(
-      'https://api.stability.ai/v2beta/video/generate',
+    const r = await axios.post(
+      "https://api.groq.com/openai/v1/videos",
       { prompt },
+      { headers: { Authorization: `Bearer ${process.env.GROQ_KEY}` } }
+    );
+
+    res.json({ video: r.data.video_url });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ---------------------- VOICE TRANSCRIPTION ----------------------
+app.post("/voice", async (req, res) => {
+  try {
+    const { audio_url } = req.body;
+
+    const r = await axios.post(
+      "https://api.deepgram.com/v1/listen",
+      { url: audio_url },
       {
         headers: {
-          Authorization: `Bearer ${process.env.STABILITY_API_KEY}`,
-          'Content-Type': 'application/json'
+          Authorization: `Token ${process.env.DEEPGRAM_KEY}`,
+          "Content-Type": "application/json"
         }
       }
     );
 
-    res.json(response.data);
-  } catch (err) {
-    res.status(500).json({ error: 'Video error', details: err.response?.data });
+    res.json({ text: r.data.results.channels[0].alternatives[0].transcript });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
   }
 });
 
-// VOICE → TEXT - Deepgram
-app.post('/voice-to-text', async (req, res) => {
+// ---------------------- SEARCH ----------------------
+app.get("/search", async (req, res) => {
   try {
-    const { audioUrl } = req.body;
+    const q = req.query.q;
 
-    const response = await axios.post(
-      'https://api.deepgram.com/v1/listen',
-      { url: audioUrl },
-      {
-        headers: {
-          Authorization: `Token ${process.env.DEEPGRAM_API_KEY}`,
-          'Content-Type': 'application/json'
-        },
-        params: { model: 'nova-3' }
-      }
+    const r = await axios.get(
+      `https://www.searchapi.io/api/v1/search?engine=google&q=${q}&api_key=${process.env.SEARCHAPI_KEY}`
     );
 
-    res.json({
-      transcript: response.data.results.channels[0].alternatives[0].transcript
-    });
-  } catch (err) {
-    res.status(500).json({ error: 'Voice error', details: err.response?.data });
+    res.json(r.data);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
   }
 });
 
-// SEARCH - searchapi.io
-app.get('/search', async (req, res) => {
-  try {
-    const { q } = req.query;
-
-    const response = await axios.get(
-      'https://www.searchapi.io/api/v1/search',
-      {
-        params: {
-          engine: 'google',
-          q,
-          api_key: process.env.SEARCHAPI_KEY
-        }
-      }
-    );
-
-    res.json(response.data);
-  } catch (err) {
-    res.status(500).json({ error: 'Search error', details: err.response?.data });
-  }
-});
-
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`Lord AI API running on port ${PORT}`));
+// ---------------------- START ----------------------
+app.listen(3000, () => console.log("API running"));
